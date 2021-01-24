@@ -1,0 +1,35 @@
+tasks:
+  lib:
+    description: build angle library
+    args:
+      - env: BUILD_OS
+        description: build os
+        default: ${HOST_OS}
+      - env: BUILD_ARCH
+        description: build architecture, amd64 or 386
+        default: ${HOST_ARCH}
+    actions:
+      - if :
+          check: ${"./vcpkg" | file.dir | "!"}
+          actions:
+            cmd:
+              exec: git clone https://github.com/microsoft/vcpkg
+      - if:
+          check: ${"./vcpkg/vcpkg.exe" | file.regular | "!"}
+          actions:
+            cmd:
+              workdir: vcpkg
+              exec: cmd /c bootstrap-vcpkg.bat
+      - cmd:
+          exec: |
+            sh -c "cp triplets/* vcpkg/triplets/"
+            sh -c "cp -r ports/* vcpkg/ports/"
+      - env: _VCPKG_ARCH=${"amd64 x64 386 x86" | map.get $BUILD_ARCH}
+      - cmd:
+          workdir: vcpkg
+          exec: |
+            cmd /c vcpkg.exe install angle2:${_VCPKG_ARCH}-windows-rel
+            mkdir libs
+            cp ./packages/angle2_${_VCPKG_ARCH}-windows-rel/bin/libEGL.dll libs/libEGL-$BUILD_ARCH.dll
+            cp ./packages/angle2_${_VCPKG_ARCH}-windows-rel/bin/libGLESv2.dll libs/libGLESv2-$BUILD_ARCH.dll
+
